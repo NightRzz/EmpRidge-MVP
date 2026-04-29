@@ -1,4 +1,5 @@
 import asyncio
+import re
 import sqlite3
 from pathlib import Path
 from database import setup_and_import
@@ -8,6 +9,25 @@ import aiohttp
 MAX_CONCURRENT_REQUESTS = 4
 API_BASE = "https://www.themealdb.com/api/json/v1/1/"
 API_IMG = "https://www.themealdb.com/images/ingredients/"
+
+DESCRIPTORS_RE = re.compile(r'\b(?:ground|granulated|dried|dry|hot|smoked|flaked|minced|lean|raw|frozen|tinned|unwaxed|pitted|stoned|powdered|icing|soft|light|brown|mixed|whole|shelled|shredded|melted|ready rolled|strong|white|red|green|yellow|small|jumbo|little|zest|powder|paste|puree|purée|stock|cube|stalks|leaves|flakes|seeds|balls|chunks|segments|chopped|diced|sliced|grated|beaten|freshly|cooked|ripe|chilled|cold|boiling|plain|all purpose|full fat|low fat|natural|organic|extra|free-range|liquid)\b', re.IGNORECASE)
+SYNONYM_MAP = {
+    # Literówki i warianty pisowni
+    "hazlenut": "hazelnut",
+    "cardomom": "cardamom",
+    "chilly": "chili",
+    "chilli": "chili",
+    "appl": "apple",
+    "fry": "fries",
+    "peanut cooky": "peanut cookie",
+    "asparagu": "asparagus",
+    "hummu": "hummus",
+    "challot": "shallot",
+    "braeburn apple": "apple",
+    "bramley apple": "apple",
+    "baby new potato": "potato",
+    "new potato": "potato",
+}
 
 
 async def fetch_json(session: aiohttp.ClientSession, url: str) -> dict | None:
@@ -50,6 +70,28 @@ async def get_meal_ids(session: aiohttp.ClientSession) -> list[str]:
     return list(meal_ids)
 
 
+def get_normalized_name(name: str) -> str:
+    """Synchronalna funkcja do normalizacji składnika."""
+    if not name:
+        return ""
+
+    # 1. Regex - usuwanie przymiotników
+    clean = DESCRIPTORS_RE.sub('', name.lower()).strip()
+
+    # 2. Usuwanie zbędnych spacji
+    clean = " ".join(clean.split())
+
+    # 3. Prosta lematyzacja (liczba mnoga)
+    if clean.endswith('ies'):
+        clean = clean[:-3] + 'y'
+    elif clean.endswith('es') and len(clean) > 4:
+        clean = clean[:-2]
+    elif clean.endswith('s') and not clean.endswith('ss'):
+        clean = clean[:-1]
+
+    return SYNONYM_MAP.get(clean, clean)
+
+
 async def fetch_meal_details(
         session: aiohttp.ClientSession,
         meal_id: str,
@@ -72,8 +114,9 @@ async def fetch_meal_details(
         ing = meal.get(f'strIngredient{i}')
         meas = meal.get(f'strMeasure{i}')
         if ing and ing.strip():
+            normalized_name = get_normalized_name(ing)
             ingredients.append({
-                "name": ing.strip().lower(),
+                "name": normalized_name,
                 "measure": meas.strip() if meas else ""
             })
 
@@ -109,6 +152,11 @@ async def main():
                 if len(final_meals) % 25 == 0:
                     print(f"Pobrano {len(final_meals)}/{len(meal_ids)}...")
 
+    # usuwanie duplikatów(po normalizacji nazw składników)
+    all_ingredients = set()
+    for meal in final_meals:
+        for ing in meal['ingredients']:
+            all_ingredients.add(ing['name'])
     print("Zapisywanie danych do bazy SQLite...")
     try:
         setup_and_import(final_meals, API_IMG)
