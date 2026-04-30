@@ -129,7 +129,7 @@ npm run dev
 - `PUT /areas/{id}` — edycja area
 - `DELETE /areas/{id}` — usuwanie area
 
-### Wyszukiwanie (TODO)
+### Wyszukiwanie przepisów
 - `POST /search-recipes` — wyszukiwanie po składnikach
 
 ##  Status
