@@ -22,7 +22,7 @@ Aplikacja do wyszukiwania przepisów kulinarnych na podstawie posiadanych skład
 - **Pydantic** — walidacja i serializacja danych
 - **uvicorn** — serwer ASGI
 
-### Frontend (TODO)
+### Frontend
 - **React 18+**
 - **Vite** — narzędzie budowania
 - **Material-UI (MUI)** — komponenty UI
@@ -55,7 +55,21 @@ EmpRidge-MVP/
 │   │   └── empridge.db               # SQLite plik
 │   └── sql/
 │       └── schema.sql                # Schemat bazy danych
-├── frontend/                         # (TODO) React app
+├── frontend/                         # React app
+│   ├── public/                       # Statyczne zasoby
+│   ├── src/                          # Kod źródłowy React
+│   │   ├── app/                      # Główna konfiguracja (router, theme, App)
+│   │   ├── assets/                   # Statyczne zasoby (obrazy, ikony)
+│   │   ├── components/               # Ogólne komponenty UI
+│   │   ├── hooks/                    # Customowe hooki React
+│   │   ├── pages/                    # Komponenty stron/widoków
+│   │   ├── services/                 # Warstwa komunikacji z API
+│   │   ├── types/                    # Definicje typów TypeScript
+│   │   └── main.tsx                  # Punkt wejścia aplikacji
+│   ├── index.html                    # Główny plik HTML
+│   ├── package.json                  # Zależności i skrypty npm
+│   ├── tsconfig.json                 # Konfiguracja TypeScript
+│   └── vite.config.ts                # Konfiguracja Vite
 ├── requirements.txt                  # Python dependencies
 ├── README.md                         # Dokumentacja (ten plik)
 └── .cursor/rules/                    # Reguły Cursor (konwencje backendu)
@@ -158,6 +172,16 @@ npm run dev
 ### TODO
 
 - [ ] Frontend (React + Vite + MUI)
+   - [x] Inicjalizacja projektu (Vite, React, TS, zależności)
+   - [x] Konfiguracja routingu, MUI theme, layoutu i QueryClient
+   - [x] Warstwa API do komunikacji z backendem
+   - [x] Strona główna z listą przepisów
+   - [x] Strona szczegółów przepisu
+   - [ ] Autocomplete składników + wybór składników
+   - [ ] Uproszczony CRUD dla przepisów i składników (admin)
+   - [ ] Loading/error/empty states, snackbar, confirm dialog i podstawowe a11y
+   - [ ] Dokumentacja i testy frontendu
+- [x] Smoke testy frontendu (layout, strony główne, szczegóły przepisów)
 
 ## Gotowe funkcje CRUD (backend/app/crud.py)
 
