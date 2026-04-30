@@ -22,7 +22,7 @@ Aplikacja do wyszukiwania przepisów kulinarnych na podstawie posiadanych skład
 - **Pydantic** — walidacja i serializacja danych
 - **uvicorn** — serwer ASGI
 
-### Frontend (TODO)
+### Frontend
 - **React 18+**
 - **Vite** — narzędzie budowania
 - **Material-UI (MUI)** — komponenty UI
@@ -30,7 +30,7 @@ Aplikacja do wyszukiwania przepisów kulinarnych na podstawie posiadanych skład
 ### Zewnętrzne API
 - **TheMealDB** — źródło przepisów (scrapper)
 
-##  Struktura projektu
+## Struktura projektu
 
 ```
 EmpRidge-MVP/
@@ -42,21 +42,40 @@ EmpRidge-MVP/
 │   │   ├── crud.py                   # Operacje na bazie danych
 │   │   └── routes/
 │   │       ├── __init__.py
-│   │       └── recipes.py            # CRUD endpoints
+│   │       ├── recipes.py            # Endpointy przepisów
+│   │       ├── ingredients.py        # Endpointy składników + sugestie
+│   │       ├── categories.py         # Endpointy kategorii
+│   │       ├── areas.py              # Endpointy area
+│   │       └── search.py             # Endpoint wyszukiwania przepisów
+│   ├── tests/
+│   │   └── test_smoke_search.py      # Smoke test endpointu search
 │   ├── data/
 │   │   ├── database.py               # DB helpers (legacy)
 │   │   ├── scrapper.py               # Import danych z TheMealDB
-│   │   ├── empridge.db               # SQLite plik
-│   │   └── empridge - Copy.db        # Backup
+│   │   └── empridge.db               # SQLite plik
 │   └── sql/
 │       └── schema.sql                # Schemat bazy danych
-├── frontend/                          # (TODO) React app
+├── frontend/                         # React app
+│   ├── public/                       # Statyczne zasoby
+│   ├── src/                          # Kod źródłowy React
+│   │   ├── app/                      # Główna konfiguracja (router, theme, App)
+│   │   ├── assets/                   # Statyczne zasoby (obrazy, ikony)
+│   │   ├── components/               # Ogólne komponenty UI
+│   │   ├── hooks/                    # Customowe hooki React
+│   │   ├── pages/                    # Komponenty stron/widoków
+│   │   ├── services/                 # Warstwa komunikacji z API
+│   │   ├── types/                    # Definicje typów TypeScript
+│   │   └── main.tsx                  # Punkt wejścia aplikacji
+│   ├── index.html                    # Główny plik HTML
+│   ├── package.json                  # Zależności i skrypty npm
+│   ├── tsconfig.json                 # Konfiguracja TypeScript
+│   └── vite.config.ts                # Konfiguracja Vite
 ├── requirements.txt                  # Python dependencies
 ├── README.md                         # Dokumentacja (ten plik)
 └── .cursor/rules/                    # Reguły Cursor (konwencje backendu)
 ```
 
-## ️ Baza danych
+## Baza danych
 
 ### Tabele
 - `recipes` — przepisy kulinarnych
@@ -68,7 +87,7 @@ EmpRidge-MVP/
 ### Schema
 Zdefiniowany w `backend/sql/schema.sql` — ustalony z uwzględnieniem relacji i constraints.
 
-##  Uruchomienie
+## Uruchomienie
 
 ### Backend
 
@@ -110,6 +129,7 @@ npm run dev
 
 ### Składniki
 - `GET /ingredients` — lista składników (paginacja)
+- `GET /ingredients/suggestions?query={text}&limit={n}` — podpowiedzi składników (autocomplete)
 - `GET /ingredients/{id}` — szczegóły składnika
 - `POST /ingredients` — tworzenie składnika
 - `PUT /ingredients/{id}` — edycja składnika
@@ -130,27 +150,38 @@ npm run dev
 - `DELETE /areas/{id}` — usuwanie area
 
 ### Wyszukiwanie przepisów
-- `POST /search-recipes` — wyszukiwanie po składnikach
+- `POST /search-recipes` — wyszukiwanie po składnikach + matching ratio + filtry
 
-##  Status
+## Status
 
-###  Zrobione
+### Zrobione
 - [x] Schemat bazy danych
 - [x] Import danych z TheMealDB (scrapper)
 - [x] Modele Pydantic
 - [x] CRUD funkcje w bazie
 - [x] Konfiguracja FastAPI
 - [x] CRUD endpointy (recipes, ingredients, categories, areas)
+- [x] Endpoint podpowiedzi składników (`/ingredients/suggestions`)
 - [x] Endpoint wyszukiwania
 - [x] Współczynnik dopasowania
 - [x] Filtry
 - [x] Silnik wyszukiwania
+- [x] CORS pod frontend dev (`localhost:5173`)
+- [x] Smoke testy backendu (search)
 - [x] Dokumentacja API
-- [x] Testy backendu
-###  TODO
+### TODO
 
 - [ ] Frontend (React + Vite + MUI)
-
+   - [x] Inicjalizacja projektu (Vite, React, TS, zależności)
+   - [x] Konfiguracja routingu, MUI theme, layoutu i QueryClient
+   - [x] Warstwa API do komunikacji z backendem
+   - [x] Strona główna z listą przepisów
+   - [x] Strona szczegółów przepisu
+   - [ ] Autocomplete składników + wybór składników
+   - [ ] Uproszczony CRUD dla przepisów i składników (admin)
+   - [ ] Loading/error/empty states, snackbar, confirm dialog i podstawowe a11y
+   - [ ] Dokumentacja i testy frontendu
+- [x] Smoke testy frontendu (layout, strony główne, szczegóły przepisów)
 
 ## Gotowe funkcje CRUD (backend/app/crud.py)
 
@@ -163,6 +194,7 @@ npm run dev
 
 ### Ingredients
 - `list_ingredients`
+- `get_suggestions`
 - `get_ingredient_by_id`
 - `create_ingredient`
 - `update_ingredient`
@@ -182,22 +214,21 @@ npm run dev
 - `update_area`
 - `delete_area`
 
-##  Konwencje kodowania (AI / Cursor)
+## Konwencje kodowania (AI / Cursor)
 
 Reguły dla asystenta: `.cursor/rules/` — przy pracy nad `backend/**/*.py` stosuje się m.in. type hints, docstringi Google, wrapper `APIResponse`, SQLite synchronicznie, granice edycji plików.
 
-##  Użycie AI
+## Użycie AI
 
 Użyłem Cursor do generowania `README.md`, GitHub Issues, konsultacji architektury rozwiązania (planning), normalizacji nazw składników (w `scrapper.py`) i debugowania wybranych błędów.
-Generowania boilerplate'ów do CRUDa\endpointów, rozbudowanych docstringów, code review,
-generowania testów automatycznych endpointów
+Użyłem też narzędzi AI do generowania boilerplate'ów CRUD/endpointów, rozbudowanych docstringów, code review i testów automatycznych endpointów.
 
-Użyłem Cursor BugBota do precyzyjnego zidentyfikowania bugów w kodzie. 
+Użyłem Cursor BugBota do precyzyjnego zidentyfikowania bugów w kodzie.
 
 Użyłem Copilot do utworzenia `.gitignore` i szczegółowego opisu pull requestów.
 
 
-##  Licencja
+## Licencja
 
 MIT
 
