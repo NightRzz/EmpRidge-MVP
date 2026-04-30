@@ -1,0 +1,32 @@
+---
+description: EmpRidge frontend standards for React, Vite and MUI
+globs: frontend/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend React + Vite + MUI
+
+- Uzywaj TypeScript + funkcji React (bez klas).
+- Komponenty ekranow trzymaj w `frontend/src/pages`, wspolne UI w `frontend/src/components`.
+- Logike API trzymaj poza komponentami, np. w `frontend/src/services/api.ts`.
+- Komponenty MUI buduj przez `sx` i theme, unikaj inline style i duplikacji kolorow.
+- Dla list i tabel zawsze obsluguj: loading, empty state i error state.
+
+## API i dane
+
+- Backend zwraca wrapper `APIResponse` (`success`, `data`, `message`, `error`) - frontend zawsze to sprawdza.
+- Przy `success=false` lub bledzie HTTP pokazuj czytelny komunikat dla uzytkownika.
+- Utrzymuj typy request/response obok warstwy API i mapuj je jawnie.
+- Dla autocomplete skladnikow uzywaj endpointu sugestii z debounce (ok. 250-400ms).
+
+## Formy i UX
+
+- Formularze waliduj po stronie UI przed requestem.
+- Blokuj submit podczas wysylki i pokazuj stan `loading`.
+- Przy mutacjach odswiezaj dane docelowe (lista/szczegoly) po sukcesie.
+
+## Jak odpowiadac w zmianach
+
+- Proponuj male, atomowe komponenty i czytelne propsy.
+- Nie wrzucaj calego kodu stron, tylko zmieniane fragmenty.
+- Gdy dodajesz nowy widok, dopisz krotki plan testow manualnych.
