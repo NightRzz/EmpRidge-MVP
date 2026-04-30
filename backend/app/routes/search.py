@@ -30,7 +30,8 @@ async def search_recipes(payload: SearchRecipesRequest) -> APIResponse:
             max_total_ingredients=payload.max_total_ingredients
         )
         items = [SearchRecipeItem.model_validate(row) for row in rows]
-        return APIResponse(success=True, data=items, message="Znaleziono przepisy.")
+        message = "Znaleziono przepisy." if items else "Nie znaleziono przepisów."
+        return APIResponse(success=True, data=items, message=message)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except sqlite3.Error as exc:
