@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
 
@@ -108,9 +108,32 @@ class AreaResponse(AreaBase):
 
 # ============ API RESPONSE WRAPPER ============
 
+
 class APIResponse(BaseModel):
     """Wrapper dla spójnych odpowiedzi API."""
     success: bool
     data: Optional[dict | list] = None
     error: Optional[str] = None
     message: Optional[str] = None
+
+
+# ============ SEARCH ============
+
+
+class SearchRecipesRequest(BaseModel):
+    """Request body dla wyszukiwania przepisów po składnikach"""
+
+    ingredient_ids: list[int] = Field(..., min_length=1)
+    category_id: Optional[int] = None
+    area_id: Optional[int] = None
+    min_matching_ratio: float = 0.0
+    max_total_ingredients: Optional[int] = None
+
+
+class SearchRecipeItem(RecipeBase):
+    """Pojedynczy rekord wyniku wyszukiwania"""
+
+    id:int
+    matching_ratio: float
+    total_count: int
+    matched_count: int

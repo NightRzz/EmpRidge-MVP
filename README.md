@@ -129,7 +129,7 @@ npm run dev
 - `PUT /areas/{id}` — edycja area
 - `DELETE /areas/{id}` — usuwanie area
 
-### Wyszukiwanie (TODO)
+### Wyszukiwanie przepisów
 - `POST /search-recipes` — wyszukiwanie po składnikach
 
 ##  Status
@@ -140,18 +140,17 @@ npm run dev
 - [x] Modele Pydantic
 - [x] CRUD funkcje w bazie
 - [x] Konfiguracja FastAPI
-
-###  W trakcie (Issues #1-3)
 - [x] CRUD endpointy (recipes, ingredients, categories, areas)
-- [ ] Endpoint wyszukiwania
-- [ ] Współczynnik dopasowania
-- [ ] Filtry
-
+- [x] Endpoint wyszukiwania
+- [x] Współczynnik dopasowania
+- [x] Filtry
+- [x] Silnik wyszukiwania
+- [x] Dokumentacja API
+- [x] Testy backendu
 ###  TODO
-- [ ] Testy backendu
+
 - [ ] Frontend (React + Vite + MUI)
-- [ ] Silnik wyszukiwania
-- [ ] Dokumentacja API
+
 
 ## Gotowe funkcje CRUD (backend/app/crud.py)
 
@@ -190,10 +189,14 @@ Reguły dla asystenta: `.cursor/rules/` — przy pracy nad `backend/**/*.py` sto
 ##  Użycie AI
 
 Użyłem Cursor do generowania `README.md`, GitHub Issues, konsultacji architektury rozwiązania (planning), normalizacji nazw składników (w `scrapper.py`) i debugowania wybranych błędów.
-Generowania boilerplate'ów do CRUDa, rozbudowanych docstringów, code review
+Generowania boilerplate'ów do CRUDa\endpointów, rozbudowanych docstringów, code review,
+generowania testów automatycznych endpointów
 
-Użyłem Copilot do utworzenia `.gitignore` i szczegółowego opisu pull requestu.
- 
+Użyłem Cursor BugBota do precyzyjnego zidentyfikowania bugów w kodzie. 
+
+Użyłem Copilot do utworzenia `.gitignore` i szczegółowego opisu pull requestów.
+
+
 ##  Licencja
 
 MIT

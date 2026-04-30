@@ -749,3 +749,78 @@ def delete_area(area_id: int) -> bool:
         return cursor.rowcount > 0
     finally:
         conn.close()
+
+# ============ SEARCH ============
+
+def search_recipes(
+        ingredient_ids: list[int],
+        category_id: int | None = None,
+        area_id: int | None = None,
+        min_matching_ratio: float = 0.0,
+        max_total_ingredients: int | None = None,
+) -> list[dict[str, Any]]:
+    """Wyszukiwanie przepisów po składnikach i zwraca wyniki z matching ratio."""
+
+    if not ingredient_ids:
+        raise ValueError("ingredient_ids nie może być puste.")
+    if any(item <= 0 for item in ingredient_ids):
+        raise ValueError("Wszystkie ingredient_ids muszą być > 0.")
+    if min_matching_ratio < 0 or min_matching_ratio > 100:
+        raise ValueError("min_matching_ratio musi być w zakresie 0-100.")
+    if max_total_ingredients is not None and max_total_ingredients <= 0:
+        raise ValueError("max_total_ingredients musi być > 0.")
+
+    placeholders = ",".join("?" for _ in ingredient_ids)
+
+    sql = f"""
+            SELECT
+                r.id,
+                r.title,
+                r.instructions,
+                r.image_url,
+                r.youtube_url,
+                r.category_id,
+                r.area_id,
+                SUM(CASE WHEN ri.ingredient_id IN ({placeholders}) THEN 1 ELSE 0 END) AS matched_count,
+                COUNT(ri.ingredient_id) AS total_count,
+                ROUND(
+                    (SUM(CASE WHEN ri.ingredient_id IN ({placeholders}) THEN 1 ELSE 0 END) * 100.0)
+                    / COUNT(ri.ingredient_id),
+                    2
+                ) AS matching_ratio
+            FROM recipes r
+            JOIN recipe_ingredients ri ON ri.recipe_id = r.id
+            WHERE 1=1
+    """
+
+    params: list[Any] = ingredient_ids + ingredient_ids
+
+    if category_id is not None:
+        sql += " AND r.category_id = ?"
+        params.append(category_id)
+
+    if area_id is not None:
+        sql += " AND r.area_id = ?"
+        params.append(area_id)
+
+    sql += """
+            GROUP BY r.id
+            HAVING matching_ratio >= ?
+        """
+    params.append(min_matching_ratio)
+
+    if max_total_ingredients is not None:
+        sql += " AND total_count <= ?"
+        params.append(max_total_ingredients)
+
+    sql += """
+            ORDER BY matching_ratio DESC, matched_count DESC, r.title ASC
+        """
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql, tuple(params))
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
