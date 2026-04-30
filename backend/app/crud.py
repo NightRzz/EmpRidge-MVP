@@ -227,7 +227,22 @@ def list_recipes(skip: int = 0, limit: int = 50) -> list[dict[str, Any]]:
         raise ValueError("Parametr skip musi być >= 0.")
     if limit <= 0:
         raise ValueError("Parametr limit musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj list_recipes().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            SELECT id, title, instructions, image_url, youtube_url, category_id, area_id
+            FROM recipes
+            ORDER BY title
+            LIMIT ? OFFSET ?
+            """,
+            (limit, skip),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
 
 
 def get_recipe_by_id(recipe_id: int) -> dict[str, Any] | None:
@@ -241,7 +256,22 @@ def get_recipe_by_id(recipe_id: int) -> dict[str, Any] | None:
     """
     if recipe_id <= 0:
         raise ValueError("Parametr recipe_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj get_recipe_by_id().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+        SELECT id, title, instructions, image_url, youtube_url, category_id, area_id
+        FROM recipes
+        WHERE id = ?
+            """,
+            (recipe_id,),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 
 def create_recipe(
@@ -267,7 +297,34 @@ def create_recipe(
     """
     if not title.strip():
         raise ValueError("Tytuł przepisu nie może być pusty.")
-    raise NotImplementedError("TODO: zaimplementuj create_recipe().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+        INSERT INTO RECIPES (title, instructions, image_url, youtube_url, category_id, area_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                title.strip(),
+                instructions,
+                image_url,
+                youtube_url,
+                category_id,
+                area_id,
+            ),
+        )
+        conn.commit()
+        recipe_id = cursor.lastrowid
+        if recipe_id is None:
+            raise RuntimeError("Nie udało się pobrać ID nowego przepisu.")
+        created = get_ingredient_by_id(recipe_id)
+        if created is None:
+            raise RuntimeError("Nie udało się odczytać utworzonego przepisu.")
+        return created
+    finally:
+        conn.close()
 
 
 def update_recipe(
@@ -295,7 +352,50 @@ def update_recipe(
     """
     if recipe_id <= 0:
         raise ValueError("Parametr recipe_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj update_recipe().")
+
+    updates:dict[str, str | int] = {}
+    if title is not None:
+        title = title.strip()
+        if not title:
+            raise ValueError("Tytuł przepisu nie może być pusty.")
+        updates["title"] = title
+    if instructions is not None:
+        updates["instructions"] = instructions
+    if image_url is not None:
+        updates["image_url"] = image_url
+    if youtube_url is not None:
+        updates["youtube_url"] = youtube_url
+    if category_id is not None:
+        updates["category_id"] = category_id
+    if area_id is not None:
+        updates["area_id"] = area_id
+
+    if not updates:
+        return get_recipe_by_id(recipe_id)
+
+    set_clause = ", ".join([f"{field} = ?" for field in updates])
+    values = list(updates.values()) + [recipe_id]
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                f"""
+            UPDATE recipes
+            SET {set_clause}
+            WHERE id = ?
+                """,
+            tuple(values),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return None
+
+        return get_recipe_by_id(recipe_id)
+    finally:
+        conn.close()
+
+
 
 
 def delete_recipe(recipe_id: int) -> bool:
@@ -309,7 +409,22 @@ def delete_recipe(recipe_id: int) -> bool:
     """
     if recipe_id <= 0:
         raise ValueError("Parametr recipe_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj delete_recipe().")
+
+    conn = get_db_connection()
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            DELETE FROM recipes
+            WHERE id = ?
+                """,
+            (recipe_id,)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
 
 
 # ============ CATEGORIES ============
@@ -320,7 +435,19 @@ def list_categories() -> list[dict[str, Any]]:
     Returns:
         list[dict[str, Any]]: Lista słowników z kategoriami.
     """
-    raise NotImplementedError("TODO: zaimplementuj list_categories().")
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            SELECT id, name 
+            FROM categories
+            ORDER BY name
+                """,
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
 
 
 def get_category_by_id(category_id: int) -> dict[str, Any] | None:
@@ -334,7 +461,22 @@ def get_category_by_id(category_id: int) -> dict[str, Any] | None:
     """
     if category_id <= 0:
         raise ValueError("Parametr category_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj get_category_by_id().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            SELECT id, name
+            FROM categories
+            WHERE id = ?
+                """,
+            (category_id,),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 
 def create_category(name: str) -> dict[str, Any]:
@@ -348,7 +490,27 @@ def create_category(name: str) -> dict[str, Any]:
     """
     if not name.strip():
         raise ValueError("Nazwa kategorii nie może być pusta.")
-    raise NotImplementedError("TODO: zaimplementuj create_category().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            INSERT INTO categories (name)
+            VALUES (?)
+                """,
+            (name,),
+        )
+        conn.commit()
+        category_id = cursor.lastrowid
+        if category_id is None:
+            raise RuntimeError("Nie udało się pobrać ID nowej kategorii.")
+        created = get_category_by_id(category_id)
+        if created is None:
+            raise RuntimeError("Nie udało się odczytać utworzonej kategorii")
+        return created
+    finally:
+        conn.close()
 
 
 def update_category(category_id: int, name: str | None = None) -> dict[str, Any] | None:
@@ -363,7 +525,29 @@ def update_category(category_id: int, name: str | None = None) -> dict[str, Any]
     """
     if category_id <= 0:
         raise ValueError("Parametr category_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj update_category().")
+
+    if name is not None:
+        name = name.strip()
+        if not name:
+            raise ValueError("Nazwa kategorii nie może być pusta.")
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            UPDATE categories
+            SET name = ?
+            WHERE id = ?
+                """,
+            (name, category_id),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return None
+
+        return get_category_by_id(category_id)
+    finally:
+        conn.close()
 
 
 def delete_category(category_id: int) -> bool:
@@ -377,7 +561,21 @@ def delete_category(category_id: int) -> bool:
     """
     if category_id <= 0:
         raise ValueError("Parametr category_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj delete_category().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            DELETE FROM categories
+            WHERE id = ?
+                """,
+            (category_id,),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
 
 
 # ============ AREAS ============
@@ -388,7 +586,19 @@ def list_areas() -> list[dict[str, Any]]:
     Returns:
         list[dict[str, Any]]: Lista słowników z area.
     """
-    raise NotImplementedError("TODO: zaimplementuj list_areas().")
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            SELECT id, name 
+            FROM areas
+            ORDER BY name
+                """,
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
 
 
 def get_area_by_id(area_id: int) -> dict[str, Any] | None:
@@ -402,7 +612,22 @@ def get_area_by_id(area_id: int) -> dict[str, Any] | None:
     """
     if area_id <= 0:
         raise ValueError("Parametr area_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj get_area_by_id().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            SELECT id, name
+            FROM areas
+            WHERE id = ?
+                """,
+            (area_id,),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 
 def create_area(name: str) -> dict[str, Any]:
@@ -416,7 +641,27 @@ def create_area(name: str) -> dict[str, Any]:
     """
     if not name.strip():
         raise ValueError("Nazwa area nie może być pusta.")
-    raise NotImplementedError("TODO: zaimplementuj create_area().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            INSERT INTO areas (name)
+            VALUES (?)
+                """,
+            (name,),
+        )
+        conn.commit()
+        area_id = cursor.lastrowid
+        if area_id is None:
+            raise RuntimeError("Nie udało się pobrać ID nowego area.")
+        created = get_area_by_id(area_id)
+        if created is None:
+            raise RuntimeError("Nie udało się odczytać utworzonego area.")
+        return created
+    finally:
+        conn.close()
 
 
 def update_area(area_id: int, name: str | None = None) -> dict[str, Any] | None:
@@ -431,7 +676,29 @@ def update_area(area_id: int, name: str | None = None) -> dict[str, Any] | None:
     """
     if area_id <= 0:
         raise ValueError("Parametr area_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj update_area().")
+
+    if name is not None:
+        name = name.strip()
+        if not name:
+            raise ValueError("Nazwa area nie może być pusta.")
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            UPDATE areas
+            SET name = ?
+            WHERE id = ?
+                """,
+            (name, area_id),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return None
+
+        return get_area_by_id(area_id)
+    finally:
+        conn.close()
 
 
 def delete_area(area_id: int) -> bool:
@@ -445,4 +712,18 @@ def delete_area(area_id: int) -> bool:
     """
     if area_id <= 0:
         raise ValueError("Parametr area_id musi być > 0.")
-    raise NotImplementedError("TODO: zaimplementuj delete_area().")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+                """
+            DELETE FROM areas
+            WHERE id = ?
+                """,
+            (area_id,),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
