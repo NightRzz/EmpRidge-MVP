@@ -79,7 +79,6 @@ Zdefiniowany w `backend/sql/schema.sql` — ustalony z uwzględnieniem relacji i
 
 2. **Uruchom serwer**
    ```bash
-   cd C:\Users\Nightrzz\PycharmProjects\EmpRidge-MVP
    python -m uvicorn backend.app.main:app --reload
    ```
 
