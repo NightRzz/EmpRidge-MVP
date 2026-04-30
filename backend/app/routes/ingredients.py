@@ -43,6 +43,44 @@ async def list_ingredients(skip: int = 0, limit: int = 100):
         ) from exc
 
 
+@router.get("/suggestions", response_model=APIResponse)
+async def get_suggestions(query:str, limit:int = 15) -> APIResponse:
+    """Zwraca sugestie składników na podstawie zapytania.
+
+    Endpoint zwraca listę składników, których nazwa zawiera podany ciąg znaków.
+    Wyniki są posortowane alfabetycznie i ograniczone do określonej liczby.
+
+    Args:
+        query: Ciąg znaków do wyszukania w nazwach składników.
+        limit: Maksymalna liczba sugestii do zwrócenia.
+    Returns:
+        APIResponse: Odpowiedź zawierająca listę sugestii.
+
+    Raises:
+        HTTPException: 400 przy niepoprawnych parametrach.
+        HTTPException: 500 przy błędzie bazy danych.
+    """
+    try:
+
+        suggestions = crud.suggest_ingredients(query, limit)
+
+        suggestion_models = [IngredientResponse.model_validate(item) for item in suggestions]
+
+        message = "Pobrano listę składników." if suggestions else "Nie znaleziono składników."
+        return APIResponse(
+            success=True,
+            data=[item.model_dump() for item in suggestion_models],
+            message=message,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except sqlite3.Error as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Błąd bazy danych.",
+        ) from exc
+
+
 @router.get("/{ingredient_id}", response_model=APIResponse)
 async def get_ingredient(ingredient_id: int):
     """Zwraca szczegóły składnika po ID.
