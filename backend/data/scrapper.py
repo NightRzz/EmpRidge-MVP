@@ -95,8 +95,6 @@ def get_normalized_name(name: str) -> str:
     # 3. Prosta lematyzacja (liczba mnoga)
     if clean.endswith('ies'):
         clean = clean[:-3] + 'y'
-    elif clean.endswith('es') and len(clean) > 4:
-        clean = clean[:-2]
     elif clean.endswith('s') and not clean.endswith('ss'):
         clean = clean[:-1]
 
@@ -125,9 +123,15 @@ async def fetch_meal_details(
         ing = meal.get(f'strIngredient{i}')
         meas = meal.get(f'strMeasure{i}')
         if ing and ing.strip():
+            raw_name = " ".join(ing.strip().lower().split())
             normalized_name = get_normalized_name(ing)
+            final_name = normalized_name or raw_name
+
+            if not final_name:
+                continue
+
             ingredients.append({
-                "name": normalized_name,
+                "name": final_name,
                 "measure": meas.strip() if meas else ""
             })
 

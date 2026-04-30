@@ -319,7 +319,7 @@ def create_recipe(
         recipe_id = cursor.lastrowid
         if recipe_id is None:
             raise RuntimeError("Nie udało się pobrać ID nowego przepisu.")
-        created = get_ingredient_by_id(recipe_id)
+        created = get_recipe_by_id(recipe_id)
         if created is None:
             raise RuntimeError("Nie udało się odczytać utworzonego przepisu.")
         return created
@@ -526,21 +526,32 @@ def update_category(category_id: int, name: str | None = None) -> dict[str, Any]
     if category_id <= 0:
         raise ValueError("Parametr category_id musi być > 0.")
 
+    updates: dict[str, str] = {}
     if name is not None:
         name = name.strip()
         if not name:
             raise ValueError("Nazwa kategorii nie może być pusta.")
+        updates["name"] = name
+
+    if not updates:
+        return get_category_by_id(category_id)
+
+    set_clause = ", ".join([f"{field} = ?" for field in updates])
+    values = list(updates.values()) + [category_id]
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute(
-                """
+        try:
+            cursor.execute(
+                f"""
             UPDATE categories
-            SET name = ?
+            SET {set_clause}
             WHERE id = ?
                 """,
-            (name, category_id),
-        )
+                tuple(values),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("Kategoria o takiej nazwie już istnieje.") from exc
         conn.commit()
         if cursor.rowcount == 0:
             return None
@@ -677,21 +688,32 @@ def update_area(area_id: int, name: str | None = None) -> dict[str, Any] | None:
     if area_id <= 0:
         raise ValueError("Parametr area_id musi być > 0.")
 
+    updates: dict[str, str] = {}
     if name is not None:
         name = name.strip()
         if not name:
             raise ValueError("Nazwa area nie może być pusta.")
+        updates["name"] = name
+
+    if not updates:
+        return get_area_by_id(area_id)
+
+    set_clause = ", ".join([f"{field} = ?" for field in updates])
+    values = list(updates.values()) + [area_id]
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute(
-                """
+        try:
+            cursor.execute(
+                f"""
             UPDATE areas
-            SET name = ?
+            SET {set_clause}
             WHERE id = ?
                 """,
-            (name, area_id),
-        )
+                tuple(values),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("Area o takiej nazwie już istnieje.") from exc
         conn.commit()
         if cursor.rowcount == 0:
             return None

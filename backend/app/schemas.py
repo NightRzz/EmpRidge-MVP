@@ -17,14 +17,9 @@ class RecipeCreate(RecipeBase):
     pass
 
 
-class RecipeUpdate(BaseModel):
+class RecipeUpdate(RecipeBase):
     """Schemat do aktualizacji przepisu."""
     title: Optional[str] = None
-    instructions: Optional[str] = None
-    image_url: Optional[str] = None
-    youtube_url: Optional[str] = None
-    category_id: Optional[int] = None
-    area_id: Optional[int] = None
 
 
 class RecipeResponse(RecipeBase):
@@ -44,7 +39,14 @@ class IngredientBase(BaseModel):
 
 class IngredientCreate(IngredientBase):
     """Schemat do tworzenia składnika."""
-    pass
+    image_url: str
+
+
+class IngredientUpdate(BaseModel):
+    """Schemat do aktualizacji składnika."""
+
+    name: str | None = None
+    image_url: str | None = None
 
 
 class IngredientResponse(IngredientBase):
@@ -66,6 +68,12 @@ class CategoryCreate(CategoryBase):
     pass
 
 
+class CategoryUpdate(BaseModel):
+    """Schemat do aktualizacji kategorii."""
+
+    name: str | None = None
+
+
 class CategoryResponse(CategoryBase):
     """Schemat odpowiedzi."""
     id: int
@@ -83,6 +91,12 @@ class AreaBase(BaseModel):
 class AreaCreate(AreaBase):
     """Schemat do tworzenia area."""
     pass
+
+
+class AreaUpdate(BaseModel):
+    """Schemat do aktualizacji area."""
+
+    name: str | None = None
 
 
 class AreaResponse(AreaBase):
