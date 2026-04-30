@@ -824,3 +824,31 @@ def search_recipes(
         return [dict(row) for row in cursor.fetchall()]
     finally:
         conn.close()
+
+
+def suggest_ingredients(query: str, limit: int = 15) -> list[dict]:
+    """Wyszukiwanie składników po query"""
+
+    if not query.strip():
+        raise ValueError("Nazwa query nie może być pusta.")
+
+    if limit <= 0 or limit >= 20 :
+        raise ValueError("Parametr limit musi być > 0 < 20.")
+
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, name, image_url
+            FROM ingredients
+            WHERE name LIKE LOWER(?)
+            ORDER BY name
+            LIMIT ?
+            """,
+            (f"%{query}%", limit),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
