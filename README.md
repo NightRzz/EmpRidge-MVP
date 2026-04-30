@@ -104,13 +104,30 @@ npm run dev
 ### Przepisy
 - `GET /recipes` — lista przepisów (paginacja)
 - `GET /recipes/{id}` — szczegóły przepisu
-- `POST /recipes` — tworzenie przepisu (admin)
-- `PUT /recipes/{id}` — edycja przepisu (admin)
-- `DELETE /recipes/{id}` — usuwanie przepisu (admin)
+- `POST /recipes` — tworzenie przepisu
+- `PUT /recipes/{id}` — edycja przepisu
+- `DELETE /recipes/{id}` — usuwanie przepisu
 
-### Dane pomocnicze
-- `GET /recipes/lists/categories` — lista kategorii
-- `GET /recipes/lists/areas` — lista area
+### Składniki
+- `GET /ingredients` — lista składników (paginacja)
+- `GET /ingredients/{id}` — szczegóły składnika
+- `POST /ingredients` — tworzenie składnika
+- `PUT /ingredients/{id}` — edycja składnika
+- `DELETE /ingredients/{id}` — usuwanie składnika
+
+### Kategorie
+- `GET /categories` — lista kategorii
+- `GET /categories/{id}` — szczegóły kategorii
+- `POST /categories` — tworzenie kategorii
+- `PUT /categories/{id}` — edycja kategorii
+- `DELETE /categories/{id}` — usuwanie kategorii
+
+### Area / kraje pochodzenia
+- `GET /areas` — lista area
+- `GET /areas/{id}` — szczegóły area
+- `POST /areas` — tworzenie area
+- `PUT /areas/{id}` — edycja area
+- `DELETE /areas/{id}` — usuwanie area
 
 ### Wyszukiwanie (TODO)
 - `POST /search-recipes` — wyszukiwanie po składnikach
@@ -125,7 +142,7 @@ npm run dev
 - [x] Konfiguracja FastAPI
 
 ###  W trakcie (Issues #1-3)
-- [ ] CRUD endpointy (recipes, ingredients, categories, areas)
+- [x] CRUD endpointy (recipes, ingredients, categories, areas)
 - [ ] Endpoint wyszukiwania
 - [ ] Współczynnik dopasowania
 - [ ] Filtry
@@ -136,6 +153,36 @@ npm run dev
 - [ ] Silnik wyszukiwania
 - [ ] Dokumentacja API
 
+## Gotowe funkcje CRUD (backend/app/crud.py)
+
+### Recipes
+- `list_recipes`
+- `get_recipe_by_id`
+- `create_recipe`
+- `update_recipe`
+- `delete_recipe`
+
+### Ingredients
+- `list_ingredients`
+- `get_ingredient_by_id`
+- `create_ingredient`
+- `update_ingredient`
+- `delete_ingredient`
+
+### Categories
+- `list_categories`
+- `get_category_by_id`
+- `create_category`
+- `update_category`
+- `delete_category`
+
+### Areas
+- `list_areas`
+- `get_area_by_id`
+- `create_area`
+- `update_area`
+- `delete_area`
+
 ##  Konwencje kodowania (AI / Cursor)
 
 Reguły dla asystenta: `.cursor/rules/` — przy pracy nad `backend/**/*.py` stosuje się m.in. type hints, docstringi Google, wrapper `APIResponse`, SQLite synchronicznie, granice edycji plików.
@@ -143,7 +190,7 @@ Reguły dla asystenta: `.cursor/rules/` — przy pracy nad `backend/**/*.py` sto
 ##  Użycie AI
 
 Użyłem Cursor do generowania `README.md`, GitHub Issues, konsultacji architektury rozwiązania (planning), normalizacji nazw składników (w `scrapper.py`) i debugowania wybranych błędów.
-Generowania boilerplate'ów do CRUDa, code review
+Generowania boilerplate'ów do CRUDa, rozbudowanych docstringów, code review
 
 Użyłem Copilot do utworzenia `.gitignore` i szczegółowego opisu pull requestu.
  
