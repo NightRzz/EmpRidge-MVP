@@ -1,7 +1,5 @@
 import asyncio
 import re
-import sqlite3
-from pathlib import Path
 from database import setup_and_import
 import aiohttp
 
@@ -9,6 +7,8 @@ import aiohttp
 MAX_CONCURRENT_REQUESTS = 4
 API_BASE = "https://www.themealdb.com/api/json/v1/1/"
 API_IMG = "https://www.themealdb.com/images/ingredients/"
+MAX_RETRIES = 5
+BASE_RETRY_DELAY_SECONDS = 2
 
 DESCRIPTORS_RE = re.compile(r'\b(?:ground|granulated|dried|dry|hot|smoked|flaked|minced|lean|raw|frozen|tinned|unwaxed|pitted|stoned|powdered|icing|soft|light|brown|mixed|whole|shelled|shredded|melted|ready rolled|strong|white|red|green|yellow|small|jumbo|little|zest|powder|paste|puree|purée|stock|cube|stalks|leaves|flakes|seeds|balls|chunks|segments|chopped|diced|sliced|grated|beaten|freshly|cooked|ripe|chilled|cold|boiling|plain|all purpose|full fat|low fat|natural|organic|extra|free-range|liquid)\b', re.IGNORECASE)
 SYNONYM_MAP = {
@@ -32,20 +32,31 @@ SYNONYM_MAP = {
 
 async def fetch_json(session: aiohttp.ClientSession, url: str) -> dict | None:
     """Uniwersalna funkcja do pobierania JSONa z API."""
-    try:
-        async with session.get(url, timeout=5) as response:
-            if response.status == 200:
-                await asyncio.sleep(0.3)
-                return await response.json()
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            async with session.get(url, timeout=5) as response:
+                if response.status == 200:
+                    await asyncio.sleep(0.3)
+                    return await response.json()
 
-            if response.status == 429:
-                print("Rate limit! Czekam 5s...")
-                await asyncio.sleep(5)
-                return await fetch_json(session, url)
-            return None
-    except Exception as e:
-        print(f"Błąd przy {url}: {e}")
-        return None
+                if response.status == 429:
+                    retry_delay = BASE_RETRY_DELAY_SECONDS * attempt
+                    print(f"Rate limit (429) dla {url}. Próba {attempt}/{MAX_RETRIES}, czekam {retry_delay}s...")
+                    await asyncio.sleep(retry_delay)
+                    continue
+
+                print(f"Nieoczekiwany status {response.status} dla {url}")
+                return None
+        except Exception as e:
+            if attempt == MAX_RETRIES:
+                print(f"Błąd przy {url} po {MAX_RETRIES} próbach: {e}")
+                return None
+
+            retry_delay = BASE_RETRY_DELAY_SECONDS * attempt
+            print(f"Błąd przy {url}: {e}. Ponawiam za {retry_delay}s ({attempt}/{MAX_RETRIES})...")
+            await asyncio.sleep(retry_delay)
+
+    return None
 
 
 async def get_meal_ids(session: aiohttp.ClientSession) -> list[str]:
@@ -152,11 +163,6 @@ async def main():
                 if len(final_meals) % 25 == 0:
                     print(f"Pobrano {len(final_meals)}/{len(meal_ids)}...")
 
-    # usuwanie duplikatów(po normalizacji nazw składników)
-    all_ingredients = set()
-    for meal in final_meals:
-        for ing in meal['ingredients']:
-            all_ingredients.add(ing['name'])
     print("Zapisywanie danych do bazy SQLite...")
     try:
         setup_and_import(final_meals, API_IMG)
