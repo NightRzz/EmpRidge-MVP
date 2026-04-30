@@ -35,7 +35,7 @@ def get_or_create_id(
         name: str,
         img_url: str | None = None
         ) -> int:
-    """Helper, zwraca ID rekordu, tworzy go, jeśli nie istnieje."""
+    """Helper, zwraca ID rekordu, tworzy go jeśli nie istnieje."""
 
     columns = "(name, image_url)" if img_url else "(name)"
     params = [name, img_url] if img_url else [name]
