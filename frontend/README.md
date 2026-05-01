@@ -26,7 +26,7 @@ Frontend aplikacji EmpRidge to SPA w React + TypeScript, pozwalające:
 
 Aplikacja korzysta z `VITE_API_URL` do komunikacji z backendem.
 
-1. Utwórz plik `.env` w katalogu `frontend/`:
+1. (Opcjonalnie) Utwórz plik `.env` w katalogu `frontend/`:
 
 ```bash
 VITE_API_URL=http://localhost:8000

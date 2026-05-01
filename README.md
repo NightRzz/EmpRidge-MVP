@@ -18,7 +18,7 @@ Aplikacja do wyszukiwania przepisów kulinarnych na podstawie posiadanych skład
 ### Backend
 - **Python 3.11+**
 - **FastAPI** — framework REST API
-- **SQLite** — baza danych
+- **SQLite** — baza danych  
 - **Pydantic** — walidacja i serializacja danych
 - **uvicorn** — serwer ASGI
 
@@ -112,6 +112,7 @@ Zdefiniowany w `backend/sql/schema.sql` — ustalony z uwzględnieniem relacji i
    ```
 
 ### Frontend
+Szczegółowa instrukcja - /frontend/README.md
 ```bash
 cd frontend
 npm install
@@ -182,6 +183,25 @@ npm run dev
    - [x] Loading/error/empty states, snackbar i confirm dialog
    - [x] Dokumentacja frontendu (`frontend/README.md`)
    - [x] Smoke testy frontendu (layout, strony główne, szczegóły przepisów)
+
+
+## Ciekawsze rozwiązania poza MVP
+
+Poniżej kierunki, które mogłyby zastąpić obecne proste rozwiązania MVP:
+
+### Backend / dane
+- **PostgreSQL zamiast SQLite** - lepsza współbieżność, indeksowanie i skalowalność.
+- **SQLAlchemy + Alembic** - wygodniejsze modelowanie domeny i migracje schematu.
+- **Redis cache** - szybsze odpowiedzi dla często wywoływanych endpointów.
+
+### Wyszukiwanie i ranking
+- **Fuzzy matching + synonimy** - lepsze wyniki przy literówkach i wariantach nazw.
+
+### Jakość i DevOps
+- **Testy E2E (Playwright/Cypress)** - pełne scenariusze użytkownika.
+- **Observability (Sentry + metryki + tracing)** - szybsze wykrywanie i analiza problemów.
+- **CI/CD** - automatyczne lint/test/build/deploy.
+- **Docker Compose** - spójne środowisko lokalne i prostszy onboarding.
 
 ## Gotowe funkcje CRUD (backend/app/crud.py)
 
