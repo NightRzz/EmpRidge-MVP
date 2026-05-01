@@ -27,7 +27,8 @@ async def list_ingredients(skip: int = 0, limit: int = 100):
         HTTPException: 500 przy błędzie bazy danych.
     """
     try:
-        ingredients = crud.list_ingredients(skip, limit)
+        ingredients_result = crud.list_ingredients(skip, limit)
+        ingredients = ingredients_result[0] if isinstance(ingredients_result, tuple) else ingredients_result
         ingredient_models = [IngredientResponse.model_validate(item) for item in ingredients]
         return APIResponse(
             success=True,

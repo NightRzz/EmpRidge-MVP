@@ -1,73 +1,130 @@
-# React + TypeScript + Vite
+# Frontend - EmpRidge MVP
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend aplikacji EmpRidge to SPA w React + TypeScript, pozwalające:
+- wyszukiwać przepisy po składnikach z dopasowaniem procentowym,
+- filtrować wyniki (kategoria, kraj, minimalny matching ratio, liczba składników),
+- przeglądać szczegóły przepisu,
+- zarządzać przepisami i składnikami z poziomu panelu admin.
 
-Currently, two official plugins are available:
+## Stack technologiczny
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19
+- TypeScript
+- Vite
+- Material UI (MUI)
+- TanStack Query (React Query)
+- React Router
+- React Hook Form + Zod
 
-## React Compiler
+## Wymagania
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 20+ (zalecane LTS)
+- npm 10+
+- działający backend EmpRidge (`http://localhost:8000` lub inny URL)
 
-## Expanding the ESLint configuration
+## Konfiguracja środowiska
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Aplikacja korzysta z `VITE_API_URL` do komunikacji z backendem.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. Utwórz plik `.env` w katalogu `frontend/`:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+VITE_API_URL=http://localhost:8000
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. Jeśli zmienisz URL backendu, zaktualizuj wartość zmiennej.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Domyślnie (gdy brak `.env`) frontend użyje `http://localhost:8000`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Uruchomienie lokalne
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
+
+Domyślny adres development servera:
+- `http://localhost:5173`
+
+## Dostępne skrypty
+
+- `npm run dev` - uruchamia frontend w trybie developerskim (HMR)
+- `npm run build` - buduje aplikację produkcyjną (`dist/`)
+- `npm run preview` - podgląd buildu produkcyjnego lokalnie
+- `npm run lint` - uruchamia ESLint dla całego frontendu
+
+## Routing
+
+Zdefiniowany w `src/app/router.tsx`:
+- `/` - strona główna (wyszukiwarka + lista przepisów)
+- `/recipe/:id` - szczegóły przepisu
+- `/admin/recipes` - panel zarządzania przepisami
+- `/admin/ingredients` - panel zarządzania składnikami
+
+## Struktura frontendu
+
+```text
+frontend/
+├── src/
+│   ├── app/                 # bootstrap appki: router, theme, QueryClient
+│   ├── components/          # reużywalne komponenty UI
+│   ├── hooks/               # custom hooki
+│   ├── pages/               # strony routingu
+│   │   └── admin/           # widoki panelu administracyjnego
+│   ├── services/            # warstwa API (fetch + mapowanie danych)
+│   ├── types/               # typy TS i modele API
+│   ├── utils/               # helpery (np. YouTube embed)
+│   └── main.tsx             # entrypoint React
+├── index.html
+├── package.json
+└── README.md
+```
+
+## Architektura i przeplyw danych
+
+- `apiClient.ts` centralizuje wywolania HTTP i obsluge formatu odpowiedzi backendu.
+- `services/*Api.ts` udostepniaja funkcje domenowe (recipes, ingredients, categories, areas, search).
+- TanStack Query zarzadza cache, loading/error i odswiezaniem danych.
+- Strony (`pages/*`) skladaja UI z komponentow i spinaja logike zapytan.
+- Formularze admina sa oparte o `react-hook-form` + walidacje przez Zod.
+
+## Glowne komponenty
+
+- `IngredientAutocomplete` - wielokrotny wybor skladnikow z podpowiedziami.
+- `SearchFilters` - filtry wyszukiwania przepisow.
+- `RecipeCard` - karta przepisu dla list i wynikow.
+- `ListPagination` - wspolna paginacja list.
+- `ConfirmDialog` - potwierdzanie operacji destrukcyjnych.
+- `AppLayout` - layout, nawigacja i kontener widokow.
+
+## Jak rozwijac frontend
+
+1. Uruchom backend.
+2. Uruchom frontend (`npm run dev`).
+3. Sprawdz lint:
+
+```bash
+npm run lint
+```
+
+4. Zbuduj aplikacje przed release:
+
+```bash
+npm run build
+```
+
+## Typowe problemy
+
+- **Brak polaczenia z API**: sprawdz `VITE_API_URL` i CORS po stronie backendu.
+- **Puste listy danych**: upewnij sie, ze baza backendu zawiera dane testowe.
+- **Bledy linta React hooks**: unikaj synchronicznego `setState` wewnatrz `useEffect`.
+
+## Status
+
+Frontend MVP jest gotowy i obejmuje:
+- wyszukiwarke przepisow + filtry,
+- szczegoly przepisu,
+- panel admin dla przepisow i skladnikow,
+- obsluge loading/error/empty states,
+- podstawowa walidacje formularzy i UX potwierdzen.

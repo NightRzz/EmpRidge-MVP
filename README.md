@@ -11,7 +11,7 @@ Aplikacja do wyszukiwania przepisów kulinarnych na podstawie posiadanych skład
 -  **Filtry** — kategoria, kraj pochodzenia, liczba składników
 -  **Autouzupełnianie** — podpowiedzi składników podczas wpisywania
 -  **Szczegóły przepisu** — instrukcje, zdjęcia, linki YouTube
--  **Frontend** — React + Vite + MUI (w trakcie)
+-  **Frontend** — React + Vite + MUI (gotowy w zakresie MVP)
 
 ##  Stack technologiczny
 
@@ -111,7 +111,7 @@ Zdefiniowany w `backend/sql/schema.sql` — ustalony z uwzględnieniem relacji i
    python backend/data/scrapper.py
    ```
 
-### Frontend (TODO)
+### Frontend
 ```bash
 cd frontend
 npm install
@@ -155,33 +155,33 @@ npm run dev
 ## Status
 
 ### Zrobione
-- [x] Schemat bazy danych
-- [x] Import danych z TheMealDB (scrapper)
-- [x] Modele Pydantic
-- [x] CRUD funkcje w bazie
-- [x] Konfiguracja FastAPI
-- [x] CRUD endpointy (recipes, ingredients, categories, areas)
-- [x] Endpoint podpowiedzi składników (`/ingredients/suggestions`)
-- [x] Endpoint wyszukiwania
-- [x] Współczynnik dopasowania
-- [x] Filtry
-- [x] Silnik wyszukiwania
-- [x] CORS pod frontend dev (`localhost:5173`)
-- [x] Smoke testy backendu (search)
-- [x] Dokumentacja API
-### TODO
+- [x] Backend (Python FastAPI SQLite)
+   - [x] Schemat bazy danych
+   - [x] Import danych z TheMealDB (scrapper)
+   - [x] Modele Pydantic
+   - [x] CRUD funkcje w bazie
+   - [x] Konfiguracja FastAPI
+   - [x] CRUD endpointy (recipes, ingredients, categories, areas)
+   - [x] Endpoint podpowiedzi składników (`/ingredients/suggestions`)
+   - [x] Endpoint wyszukiwania
+   - [x] Współczynnik dopasowania
+   - [x] Filtry
+   - [x] Silnik wyszukiwania
+   - [x] CORS pod frontend dev (`localhost:5173`)
+   - [x] Smoke testy backendu (search)
+   - [x] Dokumentacja API
 
-- [ ] Frontend (React + Vite + MUI)
+- [x] Frontend (React + Vite + MUI)
    - [x] Inicjalizacja projektu (Vite, React, TS, zależności)
    - [x] Konfiguracja routingu, MUI theme, layoutu i QueryClient
    - [x] Warstwa API do komunikacji z backendem
-   - [x] Strona główna z listą przepisów
+   - [x] Strona główna z wyszukiwaniem i filtrami
    - [x] Strona szczegółów przepisu
-   - [ ] Autocomplete składników + wybór składników
-   - [ ] Uproszczony CRUD dla przepisów i składników (admin)
-   - [ ] Loading/error/empty states, snackbar, confirm dialog i podstawowe a11y
-   - [ ] Dokumentacja i testy frontendu
-- [x] Smoke testy frontendu (layout, strony główne, szczegóły przepisów)
+   - [x] Autocomplete składników + wybór składników
+   - [x] Uproszczony CRUD dla przepisów i składników (admin)
+   - [x] Loading/error/empty states, snackbar i confirm dialog
+   - [x] Dokumentacja frontendu (`frontend/README.md`)
+   - [x] Smoke testy frontendu (layout, strony główne, szczegóły przepisów)
 
 ## Gotowe funkcje CRUD (backend/app/crud.py)
 
@@ -221,12 +221,13 @@ Reguły dla asystenta: `.cursor/rules/` — przy pracy nad `backend/**/*.py` sto
 ## Użycie AI
 
 Użyłem Cursor do generowania `README.md`, GitHub Issues, konsultacji architektury rozwiązania (planning), normalizacji nazw składników (w `scrapper.py`) i debugowania wybranych błędów.
-Użyłem też narzędzi AI do generowania boilerplate'ów CRUD/endpointów, rozbudowanych docstringów, code review i testów automatycznych endpointów.
+Także do generowania boilerplate'ów CRUD/endpointów, rozbudowanych docstringów, code review i testów automatycznych endpointów.
+Cursor wspierał mnie również w pracy
+nad frontendem, pomagał w tworzeniu komponentów React, konfiguracji TypeScript i optymalizacji kodu UI.
 
 Użyłem Cursor BugBota do precyzyjnego zidentyfikowania bugów w kodzie.
 
-Użyłem Copilot do utworzenia `.gitignore` i szczegółowego opisu pull requestów.
-
+Użyłem Copilot do utworzenia `.gitignore` i szczegółowego opisu pull requestów. 
 
 ## Licencja
 
@@ -238,4 +239,4 @@ MIT
 
 ---
 
-**Uwaga**: Projekt jest w fazie MVP. Backend jest w trakcie rozwoju, frontend planowany na później.
+**Uwaga**: Projekt jest w fazie MVP. Backend i frontend działają w zakresie funkcji opisanych w dokumentacji.

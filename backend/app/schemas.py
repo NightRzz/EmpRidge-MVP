@@ -22,9 +22,32 @@ class RecipeUpdate(RecipeBase):
     title: Optional[str] = None
 
 
+class RecipeIngredientItem(BaseModel):
+    """Pojedyncza linia składnika w szczegółach przepisu."""
+
+    ingredient_id: int
+    name: str
+    image_url: str | None = None
+    measure: str | None = None
+
+
+class RecipeIngredientAssignment(BaseModel):
+    """Przypisywanie składnika z katalogu do przepisu (tylko istniejące ID)."""
+
+    ingredient_id: int = Field(..., gt=0)
+    measure: str | None = None
+
+
+class RecipeIngredientsReplace(BaseModel):
+    """Całkowita zamiana listy składników przepisu."""
+
+    ingredients: list[RecipeIngredientAssignment] = Field(default_factory=list)
+
+
 class RecipeResponse(RecipeBase):
     """Schemat odpowiedzi — to dostaje frontend."""
     id: int
+    ingredients: list[RecipeIngredientItem] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 

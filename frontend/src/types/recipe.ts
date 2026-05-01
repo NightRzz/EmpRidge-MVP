@@ -1,3 +1,10 @@
+export type RecipeIngredientLine = {
+  ingredient_id: number
+  name: string
+  image_url: string | null
+  measure: string | null
+}
+
 export type Recipe = {
   id: number
   title: string
@@ -6,4 +13,5 @@ export type Recipe = {
   youtube_url: string | null
   category_id: number | null
   area_id: number | null
+  ingredients?: RecipeIngredientLine[]
 }
