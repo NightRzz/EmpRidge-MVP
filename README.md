@@ -1,5 +1,8 @@
 # EmpRidge MVP
 
+https://github.com/user-attachments/assets/7d26e760-4a2e-484a-aa52-f4eeb0ce474c
+
+
 **Aplikacja do wyszukiwania przepisów na podstawie składników, które masz w domu.**
 
 Aplikacja do wyszukiwania przepisów kulinarnych na podstawie posiadanych składników. Technologia dopasowuje przepisy i pokazuje, ile procent składników do nich pasuje.
