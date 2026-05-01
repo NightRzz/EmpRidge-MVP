@@ -20,15 +20,20 @@ def get_db_connection() -> sqlite3.Connection:
 
 # ============ INGREDIENTS ============
 
-def list_ingredients(skip: int = 0, limit: int = 100) -> list[dict[str, Any]]:
-    """Zwraca listę składników z paginacją.
+def list_ingredients(skip: int = 0, limit: int = 100) -> tuple[list[dict[str, Any]], int]:
+    """Pobiera listę składników z bazy danych z obsługą paginacji.
 
     Args:
-        skip: Liczba rekordów do pominięcia.
-        limit: Maksymalna liczba rekordów do zwrócenia.
+        skip: Liczba rekordów do pominięcia od początku listy. Domyślnie 0.
+        limit: Maksymalna liczba rekordów do zwrócenia. Domyślnie 100.
 
     Returns:
-        list[dict[str, Any]]: Lista słowników ze składnikami.
+        tuple[list[dict[str, Any]], int]: Krotka zawierająca listę słowników
+        reprezentujących składniki, posortowanych alfabetycznie według nazwy,
+        oraz całkowitą liczbę dostępnych składników.
+
+    Raises:
+        ValueError: Jeśli `skip` jest mniejsze niż 0 lub `limit` jest mniejsze lub równe 0.
     """
     if skip < 0:
         raise ValueError("Parametr skip musi być >= 0.")
@@ -47,19 +52,27 @@ def list_ingredients(skip: int = 0, limit: int = 100) -> list[dict[str, Any]]:
             """,
             (limit, skip),
         )
-        return [dict(row) for row in cursor.fetchall()]
+        total_cursor = conn.cursor()
+        total_cursor.execute("SELECT COUNT(*) FROM ingredients")
+        total_count = total_cursor.fetchone()[0]
+        items = [dict(row) for row in cursor.fetchall()]
+        return items, total_count
     finally:
         conn.close()
 
 
 def get_ingredient_by_id(ingredient_id: int) -> dict[str, Any] | None:
-    """Zwraca składnik po ID albo None, jeśli nie istnieje.
+    """Pobiera pojedynczy składnik z bazy danych na podstawie jego unikalnego identyfikatora.
 
     Args:
-        ingredient_id: Klucz główny składnika.
+        ingredient_id: Unikalny identyfikator (ID) składnika.
 
     Returns:
-        dict[str, Any] | None: Słownik składnika lub None.
+        dict[str, Any] | None: Słownik zawierający dane składnika (id, name, image_url),
+        jeśli składnik o podanym ID istnieje; w przeciwnym razie None.
+
+    Raises:
+        ValueError: Jeśli `ingredient_id` jest mniejsze lub równe 0.
     """
     if ingredient_id <= 0:
         raise ValueError("Parametr ingredient_id musi być > 0.")
@@ -82,14 +95,20 @@ def get_ingredient_by_id(ingredient_id: int) -> dict[str, Any] | None:
 
 
 def create_ingredient(name: str, image_url: str) -> dict[str, Any]:
-    """Tworzy składnik i zwraca utworzony rekord.
+    """Tworzy nowy składnik w bazie danych.
 
     Args:
-        name: Nazwa składnika.
-        image_url: URL obrazka składnika.
+        name: Nazwa składnika. Musi być unikalna i niepusta.
+        image_url: Adres URL obrazka składnika. Musi być unikalny i niepusty.
 
     Returns:
-        dict[str, Any]: Utworzony rekord składnika.
+        dict[str, Any]: Słownik reprezentujący nowo utworzony składnik.
+
+    Raises:
+        ValueError: Jeśli nazwa lub URL obrazka są puste,
+                    lub jeśli składnik o takiej nazwie/URL już istnieje (IntegrityError).
+        RuntimeError: Jeśli nie udało się pobrać ID nowego składnika
+                      lub odczytać utworzonego rekordu.
     """
     if not name.strip():
         raise ValueError("Nazwa składnika nie może być pusta.")
@@ -128,15 +147,21 @@ def update_ingredient(
     name: str | None = None,
     image_url: str | None = None,
 ) -> dict[str, Any] | None:
-    """Aktualizuje pola składnika i zwraca zaktualizowany rekord.
+    """Aktualizuje wybrane pola istniejącego składnika w bazie danych.
 
     Args:
-        ingredient_id: Klucz główny składnika.
-        name: Nowa nazwa składnika.
-        image_url: Nowy adres obrazka.
+        ingredient_id: Unikalny identyfikator (ID) składnika do zaktualizowania.
+        name: Opcjonalna nowa nazwa składnika. Jeśli podana, nie może być pusta.
+        image_url: Opcjonalny nowy adres URL obrazka składnika. Jeśli podany, nie może być pusty.
 
     Returns:
-        dict[str, Any] | None: Zaktualizowany rekord lub None, jeśli składnik nie istnieje.
+        dict[str, Any] | None: Słownik zawierający zaktualizowane dane składnika,
+        lub None, jeśli składnik o podanym ID nie istnieje.
+
+    Raises:
+        ValueError: Jeśli `ingredient_id` jest mniejsze lub równe 0,
+                    lub jeśli nowa nazwa/URL obrazka jest pusta po usunięciu białych znaków,
+                    lub jeśli aktualizacja narusza unikalność nazwy/URL obrazka (IntegrityError).
     """
     if ingredient_id <= 0:
         raise ValueError("Parametr ingredient_id musi być > 0.")
@@ -184,13 +209,16 @@ def update_ingredient(
 
 
 def delete_ingredient(ingredient_id: int) -> bool:
-    """Usuwa składnik po ID.
+    """Usuwa składnik z bazy danych na podstawie jego identyfikatora.
 
     Args:
-        ingredient_id: Klucz główny składnika.
+        ingredient_id: Unikalny identyfikator (ID) składnika do usunięcia.
 
     Returns:
-        bool: True, jeśli rekord usunięto; False, jeśli rekord nie istniał.
+        bool: True, jeśli składnik został pomyślnie usunięty; False, jeśli składnik o podanym ID nie istniał.
+
+    Raises:
+        ValueError: Jeśli `ingredient_id` jest mniejsze lub równe 0.
     """
     if ingredient_id <= 0:
         raise ValueError("Parametr ingredient_id musi być > 0.")
@@ -213,15 +241,20 @@ def delete_ingredient(ingredient_id: int) -> bool:
 
 # ============ RECIPES ============
 
-def list_recipes(skip: int = 0, limit: int = 50) -> list[dict[str, Any]]:
-    """Zwraca listę przepisów z paginacją.
+def list_recipes(skip: int = 0, limit: int = 50) -> tuple[list[dict[str, Any]], int]:
+    """Pobiera listę przepisów z bazy danych z obsługą paginacji.
 
     Args:
-        skip: Liczba rekordów do pominięcia.
-        limit: Maksymalna liczba rekordów do zwrócenia.
+        skip: Liczba rekordów do pominięcia od początku listy. Domyślnie 0.
+        limit: Maksymalna liczba rekordów do zwrócenia. Domyślnie 50.
 
     Returns:
-        list[dict[str, Any]]: Lista słowników z przepisami.
+        tuple[list[dict[str, Any]], int]: Krotka zawierająca listę słowników
+        reprezentujących przepisy, posortowanych alfabetycznie według tytułu,
+        oraz całkowitą liczbę dostępnych przepisów.
+
+    Raises:
+        ValueError: Jeśli `skip` jest mniejsze niż 0 lub `limit` jest mniejsze lub równe 0.
     """
     if skip < 0:
         raise ValueError("Parametr skip musi być >= 0.")
@@ -240,19 +273,30 @@ def list_recipes(skip: int = 0, limit: int = 50) -> list[dict[str, Any]]:
             """,
             (limit, skip),
         )
-        return [dict(row) for row in cursor.fetchall()]
+        total_cursor = conn.cursor()
+        total_cursor.execute("SELECT COUNT(*) FROM recipes")
+        total_count = total_cursor.fetchone()[0]
+        items = [dict(row) for row in cursor.fetchall()]
+        return items, total_count
     finally:
         conn.close()
 
 
 def get_recipe_by_id(recipe_id: int) -> dict[str, Any] | None:
-    """Zwraca przepis po ID albo None, jeśli nie istnieje.
+    """Pobiera pojedynczy przepis z bazy danych na podstawie jego unikalnego identyfikatora,
+    wraz z przypisanymi do niego składnikami.
 
     Args:
-        recipe_id: Klucz główny przepisu.
+        recipe_id: Unikalny identyfikator (ID) przepisu.
 
     Returns:
-        dict[str, Any] | None: Słownik przepisu lub None.
+        dict[str, Any] | None: Słownik zawierający dane przepisu (id, title, instructions,
+        image_url, youtube_url, category_id, area_id) oraz zagnieżdżoną listę
+        składników (`ingredients`), jeśli przepis o podanym ID istnieje; w przeciwnym razie None.
+        Lista składników zawiera (ingredient_id, name, image_url, measure).
+
+    Raises:
+        ValueError: Jeśli `recipe_id` jest mniejsze lub równe 0.
     """
     if recipe_id <= 0:
         raise ValueError("Parametr recipe_id musi być > 0.")
@@ -269,9 +313,93 @@ def get_recipe_by_id(recipe_id: int) -> dict[str, Any] | None:
             (recipe_id,),
         )
         row = cursor.fetchone()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        recipe_dict = dict(row)
+        cursor.execute(
+            """
+            SELECT i.id AS ingredient_id,
+                   i.name AS name,
+                   i.image_url AS image_url,
+                   ri.measure AS measure
+            FROM recipe_ingredients ri
+            JOIN ingredients i ON i.id = ri.ingredient_id
+            WHERE ri.recipe_id = ?
+            ORDER BY i.name COLLATE NOCASE
+            """,
+            (recipe_id,),
+        )
+        recipe_dict["ingredients"] = [dict(item) for item in cursor.fetchall()]
+        return recipe_dict
     finally:
         conn.close()
+
+
+def replace_recipe_ingredients(
+    recipe_id: int,
+    lines: list[tuple[int, str | None]],
+) -> dict[str, Any] | None:
+    """Całkowicie zastępuje listę składników dla danego przepisu.
+    Składniki muszą już istnieć w katalogu `ingredients`.
+
+    Args:
+        recipe_id: Identyfikator przepisu, dla którego składniki mają zostać zastąpione.
+        lines: Lista krotek, gdzie każda krotka zawiera `(ingredient_id, measure)`.
+               `ingredient_id` to ID istniejącego składnika, a `measure` to opcjonalna miara (np. "1 szklanka").
+
+    Returns:
+        dict[str, Any] | None: Zaktualizowany przepis (zawierający nową listę składników)
+        lub None, jeśli przepis o podanym `recipe_id` nie istnieje.
+
+    Raises:
+        ValueError: Jeśli `recipe_id` jest mniejsze lub równe 0,
+                    `ingredient_id` jest mniejsze lub równe 0,
+                    lub jeśli lista `lines` zawiera zduplikowane `ingredient_id`.
+    """
+    if recipe_id <= 0:
+        raise ValueError("Parametr recipe_id musi być > 0.")
+
+    seen_ids: set[int] = set()
+    for ingredient_id, _measure in lines:
+        if ingredient_id <= 0:
+            raise ValueError("Parametr ingredient_id musi być > 0.")
+        if ingredient_id in seen_ids:
+            raise ValueError("Lista składników zawiera duplikat tego samego składnika.")
+        seen_ids.add(ingredient_id)
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM recipes WHERE id = ?", (recipe_id,))
+        if cursor.fetchone() is None:
+            return None
+
+        cursor.execute(
+            """
+            DELETE FROM recipe_ingredients
+            WHERE recipe_id = ?
+            """,
+            (recipe_id,),
+        )
+        for ingredient_id, measure in lines:
+            cleaned: str | None
+            if measure is None:
+                cleaned = None
+            else:
+                trimmed = measure.strip()
+                cleaned = trimmed if trimmed else None
+            cursor.execute(
+                """
+                INSERT INTO recipe_ingredients (recipe_id, ingredient_id, measure)
+                VALUES (?, ?, ?)
+                """,
+                (recipe_id, ingredient_id, cleaned),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    return get_recipe_by_id(recipe_id)
 
 
 def create_recipe(
@@ -282,18 +410,23 @@ def create_recipe(
     category_id: int | None = None,
     area_id: int | None = None,
 ) -> dict[str, Any]:
-    """Tworzy nowy przepis i zwraca utworzony rekord.
+    """Tworzy nowy przepis w bazie danych.
 
     Args:
-        title: Tytuł przepisu.
-        instructions: Instrukcja przygotowania.
-        image_url: URL zdjęcia przepisu.
-        youtube_url: URL filmu YouTube.
-        category_id: ID kategorii.
-        area_id: ID kraju/obszaru pochodzenia.
+        title: Tytuł przepisu. Musi być niepusty po usunięciu białych znaków.
+        instructions: Opcjonalne instrukcje przygotowania przepisu.
+        image_url: Opcjonalny adres URL zdjęcia przepisu.
+        youtube_url: Opcjonalny adres URL filmu YouTube powiązanego z przepisem.
+        category_id: Opcjonalny identyfikator kategorii, do której należy przepis.
+        area_id: Opcjonalny identyfikator obszaru geograficznego/kraju pochodzenia przepisu.
 
     Returns:
-        dict[str, Any]: Utworzony rekord przepisu.
+        dict[str, Any]: Słownik reprezentujący nowo utworzony przepis.
+
+    Raises:
+        ValueError: Jeśli `title` jest pusty po usunięciu białych znaków.
+        RuntimeError: Jeśli nie udało się pobrać ID nowego przepisu
+                      lub odczytać utworzonego rekordu.
     """
     if not title.strip():
         raise ValueError("Tytuł przepisu nie może być pusty.")
@@ -336,19 +469,24 @@ def update_recipe(
     category_id: int | None = None,
     area_id: int | None = None,
 ) -> dict[str, Any] | None:
-    """Aktualizuje wybrane pola przepisu.
+    """Aktualizuje wybrane pola istniejącego przepisu w bazie danych.
 
     Args:
-        recipe_id: Klucz główny przepisu.
-        title: Nowy tytuł przepisu.
-        instructions: Nowa instrukcja.
-        image_url: Nowy URL zdjęcia.
-        youtube_url: Nowy URL YouTube.
-        category_id: Nowe ID kategorii.
-        area_id: Nowe ID kraju/obszaru.
+        recipe_id: Unikalny identyfikator (ID) przepisu do zaktualizowania.
+        title: Opcjonalny nowy tytuł przepisu. Jeśli podany, nie może być pusta.
+        instructions: Opcjonalne nowe instrukcje przygotowania.
+        image_url: Opcjonalny nowy adres URL zdjęcia przepisu.
+        youtube_url: Opcjonalny nowy adres URL filmu YouTube.
+        category_id: Opcjonalny nowy identyfikator kategorii.
+        area_id: Opcjonalny nowy identyfikator obszaru geograficznego/kraju.
 
     Returns:
-        dict[str, Any] | None: Zaktualizowany rekord lub None.
+        dict[str, Any] | None: Słownik zawierający zaktualizowane dane przepisu,
+        lub None, jeśli przepis o podanym ID nie istnieje.
+
+    Raises:
+        ValueError: Jeśli `recipe_id` jest mniejsze lub równe 0,
+                    lub jeśli nowy tytuł jest pusty po usunięciu białych znaków.
     """
     if recipe_id <= 0:
         raise ValueError("Parametr recipe_id musi być > 0.")
@@ -396,22 +534,22 @@ def update_recipe(
         conn.close()
 
 
-
-
 def delete_recipe(recipe_id: int) -> bool:
-    """Usuwa przepis po ID.
+    """Usuwa przepis z bazy danych na podstawie jego identyfikatora.
 
     Args:
-        recipe_id: Klucz główny przepisu.
+        recipe_id: Unikalny identyfikator (ID) przepisu do usunięcia.
 
     Returns:
-        bool: True, jeśli rekord usunięto; False, jeśli rekord nie istniał.
+        bool: True, jeśli przepis został pomyślnie usunięty; False, jeśli przepis o podanym ID nie istniał.
+
+    Raises:
+        ValueError: Jeśli `recipe_id` jest mniejsze lub równe 0.
     """
     if recipe_id <= 0:
         raise ValueError("Parametr recipe_id musi być > 0.")
 
     conn = get_db_connection()
-
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -430,10 +568,11 @@ def delete_recipe(recipe_id: int) -> bool:
 # ============ CATEGORIES ============
 
 def list_categories() -> list[dict[str, Any]]:
-    """Zwraca listę wszystkich kategorii.
+    """Pobiera listę wszystkich kategorii z bazy danych.
 
     Returns:
-        list[dict[str, Any]]: Lista słowników z kategoriami.
+        list[dict[str, Any]]: Lista słowników reprezentujących kategorie,
+        posortowanych alfabetycznie według nazwy.
     """
     conn = get_db_connection()
     try:
@@ -451,13 +590,17 @@ def list_categories() -> list[dict[str, Any]]:
 
 
 def get_category_by_id(category_id: int) -> dict[str, Any] | None:
-    """Zwraca kategorię po ID albo None, jeśli nie istnieje.
+    """Pobiera pojedynczą kategorię z bazy danych na podstawie jej unikalnego identyfikatora.
 
     Args:
-        category_id: Klucz główny kategorii.
+        category_id: Unikalny identyfikator (ID) kategorii.
 
     Returns:
-        dict[str, Any] | None: Słownik kategorii lub None.
+        dict[str, Any] | None: Słownik zawierający dane kategorii (id, name),
+        jeśli kategoria o podanym ID istnieje; w przeciwnym razie None.
+
+    Raises:
+        ValueError: Jeśli `category_id` jest mniejsze lub równe 0.
     """
     if category_id <= 0:
         raise ValueError("Parametr category_id musi być > 0.")
@@ -480,13 +623,18 @@ def get_category_by_id(category_id: int) -> dict[str, Any] | None:
 
 
 def create_category(name: str) -> dict[str, Any]:
-    """Tworzy kategorię i zwraca utworzony rekord.
+    """Tworzy nową kategorię w bazie danych.
 
     Args:
-        name: Nazwa kategorii.
+        name: Nazwa kategorii. Musi być unikalna i niepusta.
 
     Returns:
-        dict[str, Any]: Utworzony rekord kategorii.
+        dict[str, Any]: Słownik reprezentujący nowo utworzoną kategorię.
+
+    Raises:
+        ValueError: Jeśli nazwa kategorii jest pusta po usunięciu białych znaków.
+        RuntimeError: Jeśli nie udało się pobrać ID nowej kategorii
+                      lub odczytać utworzonego rekordu.
     """
     if not name.strip():
         raise ValueError("Nazwa kategorii nie może być pusta.")
@@ -514,14 +662,20 @@ def create_category(name: str) -> dict[str, Any]:
 
 
 def update_category(category_id: int, name: str | None = None) -> dict[str, Any] | None:
-    """Aktualizuje nazwę kategorii.
+    """Aktualizuje nazwę istniejącej kategorii w bazie danych.
 
     Args:
-        category_id: Klucz główny kategorii.
-        name: Nowa nazwa kategorii.
+        category_id: Unikalny identyfikator (ID) kategorii do zaktualizowania.
+        name: Opcjonalna nowa nazwa kategorii. Jeśli podana, nie może być pusta.
 
     Returns:
-        dict[str, Any] | None: Zaktualizowany rekord lub None.
+        dict[str, Any] | None: Słownik zawierający zaktualizowane dane kategorii,
+        lub None, jeśli kategoria o podanym ID nie istnieje.
+
+    Raises:
+        ValueError: Jeśli `category_id` jest mniejsze lub równe 0,
+                    lub jeśli nowa nazwa kategorii jest pusta po usunięciu białych znaków,
+                    lub jeśli aktualizacja narusza unikalność nazwy (IntegrityError).
     """
     if category_id <= 0:
         raise ValueError("Parametr category_id musi być > 0.")
@@ -562,13 +716,16 @@ def update_category(category_id: int, name: str | None = None) -> dict[str, Any]
 
 
 def delete_category(category_id: int) -> bool:
-    """Usuwa kategorię po ID.
+    """Usuwa kategorię z bazy danych na podstawie jej identyfikatora.
 
     Args:
-        category_id: Klucz główny kategorii.
+        category_id: Unikalny identyfikator (ID) kategorii do usunięcia.
 
     Returns:
-        bool: True, jeśli rekord usunięto; False, jeśli rekord nie istniał.
+        bool: True, jeśli kategoria została pomyślnie usunięta; False, jeśli kategoria o podanym ID nie istniała.
+
+    Raises:
+        ValueError: Jeśli `category_id` jest mniejsze lub równe 0.
     """
     if category_id <= 0:
         raise ValueError("Parametr category_id musi być > 0.")
@@ -592,10 +749,11 @@ def delete_category(category_id: int) -> bool:
 # ============ AREAS ============
 
 def list_areas() -> list[dict[str, Any]]:
-    """Zwraca listę wszystkich area/krajów pochodzenia.
+    """Pobiera listę wszystkich obszarów geograficznych (area) z bazy danych.
 
     Returns:
-        list[dict[str, Any]]: Lista słowników z area.
+        list[dict[str, Any]]: Lista słowników reprezentujących obszary,
+        posortowanych alfabetycznie według nazwy.
     """
     conn = get_db_connection()
     try:
@@ -613,13 +771,17 @@ def list_areas() -> list[dict[str, Any]]:
 
 
 def get_area_by_id(area_id: int) -> dict[str, Any] | None:
-    """Zwraca area po ID albo None, jeśli nie istnieje.
+    """Pobiera pojedynczy obszar geograficzny (area) z bazy danych na podstawie jego unikalnego identyfikatora.
 
     Args:
-        area_id: Klucz główny area.
+        area_id: Unikalny identyfikator (ID) obszaru.
 
     Returns:
-        dict[str, Any] | None: Słownik area lub None.
+        dict[str, Any] | None: Słownik zawierający dane obszaru (id, name),
+        jeśli obszar o podanym ID istnieje; w przeciwnym razie None.
+
+    Raises:
+        ValueError: Jeśli `area_id` jest mniejsze lub równe 0.
     """
     if area_id <= 0:
         raise ValueError("Parametr area_id musi być > 0.")
@@ -642,13 +804,18 @@ def get_area_by_id(area_id: int) -> dict[str, Any] | None:
 
 
 def create_area(name: str) -> dict[str, Any]:
-    """Tworzy area i zwraca utworzony rekord.
+    """Tworzy nowy obszar geograficzny (area) w bazie danych.
 
     Args:
-        name: Nazwa area/kraju.
+        name: Nazwa obszaru/kraju. Musi być unikalna i niepusta.
 
     Returns:
-        dict[str, Any]: Utworzony rekord area.
+        dict[str, Any]: Słownik reprezentujący nowo utworzony obszar.
+
+    Raises:
+        ValueError: Jeśli nazwa obszaru jest pusta po usunięciu białych znaków.
+        RuntimeError: Jeśli nie udało się pobrać ID nowego obszaru
+                      lub odczytać utworzonego rekordu.
     """
     if not name.strip():
         raise ValueError("Nazwa area nie może być pusta.")
@@ -676,14 +843,20 @@ def create_area(name: str) -> dict[str, Any]:
 
 
 def update_area(area_id: int, name: str | None = None) -> dict[str, Any] | None:
-    """Aktualizuje nazwę area.
+    """Aktualizuje nazwę istniejącego obszaru geograficznego (area) w bazie danych.
 
     Args:
-        area_id: Klucz główny area.
-        name: Nowa nazwa area/kraju.
+        area_id: Unikalny identyfikator (ID) obszaru do zaktualizowania.
+        name: Opcjonalna nowa nazwa obszaru/kraju. Jeśli podana, nie może być pusta.
 
     Returns:
-        dict[str, Any] | None: Zaktualizowany rekord lub None.
+        dict[str, Any] | None: Słownik zawierający zaktualizowane dane obszaru,
+        lub None, jeśli obszar o podanym ID nie istnieje.
+
+    Raises:
+        ValueError: Jeśli `area_id` jest mniejsze lub równe 0,
+                    lub jeśli nowa nazwa obszaru jest pusta po usunięciu białych znaków,
+                    lub jeśli aktualizacja narusza unikalność nazwy (IntegrityError).
     """
     if area_id <= 0:
         raise ValueError("Parametr area_id musi być > 0.")
@@ -724,13 +897,16 @@ def update_area(area_id: int, name: str | None = None) -> dict[str, Any] | None:
 
 
 def delete_area(area_id: int) -> bool:
-    """Usuwa area po ID.
+    """Usuwa obszar geograficzny (area) z bazy danych na podstawie jego identyfikatora.
 
     Args:
-        area_id: Klucz główny area.
+        area_id: Unikalny identyfikator (ID) obszaru do usunięcia.
 
     Returns:
-        bool: True, jeśli rekord usunięto; False, jeśli rekord nie istniał.
+        bool: True, jeśli obszar został pomyślnie usunięty; False, jeśli obszar o podanym ID nie istniał.
+
+    Raises:
+        ValueError: Jeśli `area_id` jest mniejsze lub równe 0.
     """
     if area_id <= 0:
         raise ValueError("Parametr area_id musi być > 0.")
@@ -753,13 +929,43 @@ def delete_area(area_id: int) -> bool:
 # ============ SEARCH ============
 
 def search_recipes(
-        ingredient_ids: list[int],
-        category_id: int | None = None,
-        area_id: int | None = None,
-        min_matching_ratio: float = 0.0,
-        max_total_ingredients: int | None = None,
-) -> list[dict[str, Any]]:
-    """Wyszukiwanie przepisów po składnikach i zwraca wyniki z matching ratio."""
+    ingredient_ids: list[int],
+    category_id: int | None = None,
+    area_id: int | None = None,
+    min_matching_ratio: float = 0.0,
+    max_total_ingredients: int | None = None,
+    skip: int = 0,
+    limit: int = 24,
+) -> tuple[list[dict[str, Any]], int]:
+    """Wyszukuje przepisy na podstawie listy składników, z opcjonalnymi filtrami
+    kategorii i obszaru, oraz zwraca wyniki z obliczonym wskaźnikiem dopasowania.
+    Obsługuje również paginację.
+
+    Args:
+        ingredient_ids: Lista identyfikatorów składników, które muszą być obecne w przepisie.
+                        Lista nie może być pusta, a wszystkie ID muszą być > 0.
+        category_id: Opcjonalny identyfikator kategorii do filtrowania przepisów.
+        area_id: Opcjonalny identyfikator obszaru geograficznego do filtrowania przepisów.
+        min_matching_ratio: Minimalny wymagany wskaźnik dopasowania (w procentach, od 0 do 100).
+                            Przepisy o niższym wskaźniku zostaną odrzucone. Domyślnie 0.0.
+        max_total_ingredients: Opcjonalna maksymalna liczba wszystkich składników w przepisie.
+        skip: Liczba rekordów do pominięcia od początku listy. Domyślnie 0.
+        limit: Maksymalna liczba rekordów do zwrócenia. Domyślnie 24.
+
+    Returns:
+        tuple[list[dict[str, Any]], int]: Krotka zawierająca listę słowników reprezentujących znalezione przepisy
+        oraz całkowitą liczbę dopasowanych przepisów przed paginacją. Każdy przepis zawiera
+        dodatkowe pola: `matched_count` (liczba dopasowanych składników z `ingredient_ids`),
+        `total_count` (łączna liczba składników w przepisie) i `matching_ratio` (wskaźnik dopasowania w procentach).
+        Wyniki są sortowane malejąco według `matching_ratio`, a następnie `matched_count`,
+        a na końcu alfabetycznie według `title`.
+
+    Raises:
+        ValueError: Jeśli `ingredient_ids` jest puste, zawiera ID <= 0,
+                    `min_matching_ratio` jest poza zakresem 0-100,
+                    `max_total_ingredients` jest mniejsze lub równe 0,
+                    `skip` jest mniejsze niż 0, lub `limit` jest mniejsze lub równe 0 albo większe niż 100.
+    """
 
     if not ingredient_ids:
         raise ValueError("ingredient_ids nie może być puste.")
@@ -769,10 +975,14 @@ def search_recipes(
         raise ValueError("min_matching_ratio musi być w zakresie 0-100.")
     if max_total_ingredients is not None and max_total_ingredients <= 0:
         raise ValueError("max_total_ingredients musi być > 0.")
+    if skip < 0:
+        raise ValueError("Parametr skip musi być >= 0.")
+    if limit <= 0 or limit > 100:
+        raise ValueError("Parametr limit musi być > 0 i <= 100.")
 
     placeholders = ",".join("?" for _ in ingredient_ids)
 
-    sql = f"""
+    filtered_sql = f"""
             SELECT
                 r.id,
                 r.title,
@@ -796,44 +1006,67 @@ def search_recipes(
     params: list[Any] = ingredient_ids + ingredient_ids
 
     if category_id is not None:
-        sql += " AND r.category_id = ?"
+        filtered_sql += " AND r.category_id = ?"
         params.append(category_id)
 
     if area_id is not None:
-        sql += " AND r.area_id = ?"
+        filtered_sql += " AND r.area_id = ?"
         params.append(area_id)
 
-    sql += """
+    filtered_sql += """
             GROUP BY r.id
             HAVING matching_ratio >= ?
         """
     params.append(min_matching_ratio)
 
     if max_total_ingredients is not None:
-        sql += " AND total_count <= ?"
+        filtered_sql += " AND total_count <= ?"
         params.append(max_total_ingredients)
 
-    sql += """
+    count_sql = f"SELECT COUNT(*) AS c FROM (\n{filtered_sql}\n) AS _hits"
+
+    ordered_sql = f"""
+            {filtered_sql}
             ORDER BY matching_ratio DESC, matched_count DESC, r.title ASC
+            LIMIT ? OFFSET ?
         """
 
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute(sql, tuple(params))
-        return [dict(row) for row in cursor.fetchall()]
+        cursor.execute(count_sql, tuple(params))
+        count_row = cursor.fetchone()
+        total = int(count_row["c"]) if count_row else 0
+
+        data_params = list(params) + [limit, skip]
+        cursor.execute(ordered_sql, tuple(data_params))
+        items = [dict(row) for row in cursor.fetchall()]
+        return items, total
     finally:
         conn.close()
 
 
 def suggest_ingredients(query: str, limit: int = 15) -> list[dict]:
-    """Wyszukiwanie składników po query"""
+    """Wyszukuje składniki, których nazwa pasuje do podanego ciągu zapytania (częściowe dopasowanie, bez uwzględniania wielkości liter).
+
+    Args:
+        query: Ciąg znaków do wyszukania w nazwach składników. Nie może być pusty.
+        limit: Maksymalna liczba sugestii do zwrócenia. Domyślnie 15.
+
+    Returns:
+        list[dict]: Lista słowników reprezentujących pasujące składniki (id, name, image_url),
+        posortowanych alfabetycznie według nazwy.
+
+    Raises:
+        ValueError: Jeśli `query` jest pusty po usunięciu białych znaków,
+                    lub `limit` jest mniejsze lub równe 0, lub większe niż 20.
+    """
 
     if not query.strip():
         raise ValueError("Nazwa query nie może być pusta.")
 
-    if limit <= 0 or limit >= 20 :
-        raise ValueError("Parametr limit musi być > 0 < 20.")
+    if limit <= 0 or limit > 20:
+        raise ValueError("Parametr limit musi być > 0 i <= 20.")
 
 
     conn = get_db_connection()
